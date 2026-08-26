@@ -584,3 +584,123 @@ second_res = second_head @ second_head.T
 print("\nsecond head:\n", second_res)
 
 # the errros are glazring but will be fixed by tonight 1am
+print("let it end please, please master!")
+
+from importlib.metadata import version
+
+print("matplotlib version", version("matplotlib"))
+print("torch version:", version("torch"))
+print("tiktoken:", version("tiktoken"))
+GPT_CONFIG_124M = {
+
+    "vocab_size": 50257,    # Vocabulary size
+    "context_length": 1024, # Context length
+    "emb_dim": 768,         # Embedding dimension
+    "n_heads": 12,          # Number of attention heads
+    "n_layers": 12,         # Number of layers
+    "drop_rate": 0.1,       # Dropout rate
+    "qkv_bias": False       # Query-Key-Value bias
+}
+
+import torch
+import torch.nn as nn
+
+
+class DipLoyalServent(nn.Module):
+    def __init__(self, cfg):
+        super().__init__()
+
+        self.tok_emb = nn.Embedding(
+            cfg["vocab_size"],
+            cfg["emb_dim"]
+        )
+
+        self.pos_emb = nn.Embedding(
+            cfg["context_length"],
+            cfg["emb_dim"]
+        )
+
+        self.drop_emb = nn.Dropout(cfg["drop_rate"])
+
+        self.trf_blocks = nn.Sequential(
+            *[
+                DipTransformerBlock(cfg)
+                for _ in range(cfg["n_layers"])
+            ]
+        )
+
+        self.final_norm = DipLayerNorm(cfg["emb_dim"])
+
+        self.out_head = nn.Linear(
+            cfg["emb_dim"],
+            cfg["vocab_size"],
+            bias=False
+        )
+
+    def forward(self, in_idx):
+        batch_size, seq_len = in_idx.shape
+
+        tok_embeds = self.tok_emb(in_idx)
+
+        pos_embeds = self.pos_emb(
+            torch.arange(seq_len, device=in_idx.device)
+        )
+
+        x = tok_embeds + pos_embeds
+        x = self.drop_emb(x)
+        x = self.trf_blocks(x)
+        x = self.final_norm(x)
+        logits = self.out_head(x)
+
+        return logits
+
+class DipTransformerBlock(nn.Module):
+    def __init__(self,cfg):
+        super().__init__()
+        # im useing a place holder change at ur own risk
+
+    def forward(self,x):
+        return x
+
+class DipLayerNorm(nn.Module):
+    def __init__(self,normalized_shape, eps = 1e-5):
+        super().__init__()
+
+    def forward(self, x):
+
+        return x
+
+import tiktoken
+
+tokenizer = tiktoken.getencoding("dipgpt2")
+
+batch = []
+
+txt1 = "Every effort moves you"
+txt2 = "Every day holds a"
+
+batch. append(torch.tensor(tokenizer.encode(txt1)))
+batch.append(torch.tensor(tokenizer.encode(txt2)))
+batch = torch.stack(batch, dim=0)
+print(batch)
+#tensor([[6109, 3626, 6100,  345],
+#        [6109, 1110, 6622,  257]])
+torch.manual_seed(123)
+model = DipLoyalServent(GPT_CONFIG_124M)
+
+logits = model(batch)
+print("output shape:", logits.shape)
+print(logits)
+Output shape: torch.Size([2, 4, 50257])
+#tensor([[[-1.2034,  0.3201, -0.7130,  ..., -1.5548, -0.2390, -0.4667],
+#         [-0.1192,  0.4539, -0.4432,  ...,  0.2392,  1.3469,  1.2430],
+#         [ 0.5307,  1.6720, -0.4695,  ...,  1.1966,  0.0111,  0.5835],
+#         [ 0.0139,  1.6754, -0.3388,  ...,  1.1586, -0.0435, -1.0400]],
+
+#        [[-1.0908,  0.1798, -0.9484,  ..., -1.6047,  0.2439, -0.4530],
+#        [-0.7860,  0.5581, -0.0610,  ...,  0.4835, -0.0077,  1.6621],
+#         [ 0.3567,  1.2698, -0.6398,  ..., -0.0162, -0.1296,  0.3717],
+#         [-0.2407, -0.7349, -0.5102,  ...,  2.0057, -0.3694,  0.1814]]],
+#needs to be put in shape u do it abbas
+#for the last time stop changing the repo route im tired of fixing it 
+#i shouldnt have to rerout a repo everytime i ned to make a change
