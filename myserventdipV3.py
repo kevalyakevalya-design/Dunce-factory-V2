@@ -704,3 +704,28 @@ Output shape: torch.Size([2, 4, 50257])
 #needs to be put in shape u do it abbas
 #for the last time stop changing the repo route im tired of fixing it 
 #i shouldnt have to rerout a repo everytime i ned to make a change
+torch.manual_seed(123)
+
+batch_example = torch.random(2, 5)
+
+layer = nn.Sequential(nn.Linear(5, 6), nn.ReLU())
+out = layer(batch_example)
+print(out)
+
+mean = out.mean(dim=-1, keepdim = True)
+var = out.var(dim=-1, keepim= True)
+
+print("mean:\n", mean)
+print("variance:\n", var)
+
+
+out_norm = (out - mean) / torch.sqrt(var)
+print("normalized layer output:\n, out_norm")
+
+mean = out_norm.mean(dim=-1, keepim = True)
+var = out_norm.var(dim=-1, keepdim = True)
+print("mean:\n", mean)
+print("variance:\n", var)
+torch.set_printoptions(sci_mode= False)
+print("mean:\n", mean)
+print("variance:\n", var)
