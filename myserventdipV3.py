@@ -729,3 +729,14 @@ print("variance:\n", var)
 torch.set_printoptions(sci_mode= False)
 print("mean:\n", mean)
 print("variance:\n", var)
+
+class LayerNorm(nn.Module):
+    def _init_(self, emb_dim):
+        super(). _init_()
+        self.eps = 1e-5
+        self.scale = nn.parameter(torch.ones(emb_dim))
+        self.shift = nn.parameter(torch.zeros(emb_dim))
+
+    def forward(self, x):
+        mean = 
+        
