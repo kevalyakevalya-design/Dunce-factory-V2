@@ -738,5 +738,40 @@ class LayerNorm(nn.Module):
         self.shift = nn.parameter(torch.zeros(emb_dim))
 
     def forward(self, x):
-        mean = 
-        
+        mean = x.mean(dim=-1, keepdim=True)
+        var = x.var(dim=-1,keepdim=True, unbiased = False)
+        norm_x = (x - mean) / torch.sqrt(var + self.eps)
+        return self.scale * norm_x + self.shift
+
+#these lines will define and controll scale shift and paremeter abbas change it when we find fixed variables thank you
+
+
+        # please the variance calculations after
+
+ln = LayerNorm(emb_dim=6)
+out_ln = ln(out)
+#define
+mean = out_ln.mean(dim=-1, keepdim= True)
+var = out_ln.var(var=-1, unbiased = False, keepdim = True)
+
+print("Mean:\n", mean)
+print("Variance:\n", var)
+
+#Mean:
+# tensor([[-0.0000],
+ #       [-0.0000]], grad_fn=<MeanBackward1>)
+#Variance:
+# tensor([[0.9995],
+#        [0.9997]], grad_fn=<VarBackward0>)
+# ill try useing GeLU for next part 4.3
+
+class GELU(nn.module):
+    def __init__(self):
+        super(). __init__
+
+    def forward(self, x)
+        return 0.5 * x * (1 + torch.tanh(
+            torch.sqrt(torch.tensor(2.0 / torch.pi))*
+            (x + 0.044715 * torch.pow( x ,3))
+        ))
+
