@@ -854,3 +854,100 @@ model_without_shortcut = ExampleDeepNeuralNetwork(
     layer_sizes, use_shortcut=False
 )
 print_gradients(model_without_shortcut, sample_input)
+
+torch.manual_seed(123)
+model_with_shortcut = ExampleDeepNeuralNetwork(
+    layer_sizes, use_shortcut = True
+
+)
+print_gradients(model_with_shortcut, sample_input)
+
+fromt previous_chapters import MultiHeadAttention
+
+class TransformerBlock(nn.Module):
+    def __init__(self, cfg):
+        super(). __init__()
+        self.att = MultiHeadAttention(
+            d_in=cfg["emb_dim"],
+            d_out=cfg["emb_dim"],
+            context_length=cfg["context_length"],
+            num_heads=cfg["n_heads"], 
+            dropout=cfg["drop_rate"],
+            qkv_bias=cfg["qkv_bias"])
+        self.ff = FeedForward(cfg)
+        self.norm1 = LayerNorm(cfg["emb_dim"])
+        self.norm2 = LayerNorm(cfg["emb_dim"])
+        self.drop_shortcut = nn.Dropout(cfg["drop_rate"]
+    )
+    def forward(self, x):
+        shortcut = x
+        x = self.norm1(x)
+        x = self.att(x)
+        x = self.drop_shortcut(x)
+        x = x + shortcut
+
+        shortcut = x
+        x = self.norm2(x)
+        x = self.ff(x)
+        x = self.drop_shortcut(x)
+        x = x + shortcut  # Add the original input back
+
+        return x
+
+torch.manual_seed(123)
+x = torch.rand(2, 4, 768)
+block = DipTransformerBlock(GPT_CONFIG_124M)
+print("input shape:", x.shape)
+print("output shape:", output.shape)
+
+class GPTModel(nn.Module):
+    def __init__(self, cfg):
+        super().__init__()
+        self.tok_emb = nn.Embedding(cfg["vocab_size"], cfg["emb_dim"])
+        self.pos_emb = nn.Embedding(cfg["context_length"], cfg["emb_dim"])
+        self.drop_emb = nn.Dropout(cfg["drop_rate"])
+        
+        self.trf_blocks = nn.Sequential(
+            *[TransformerBlock(cfg) for _ in range(cfg["n_layers"])])
+        
+        self.final_norm = LayerNorm(cfg["emb_dim"])
+        self.out_head = nn.Linear(
+            cfg["emb_dim"], cfg["vocab_size"], bias=False
+        )
+
+    def forward(self, in_idx):
+        batch_size, seq_len = in_idx.shape
+        tok_embeds = self.tok_emb(in_idx)
+        pos_embeds = self.pos_emb(torch.arange(seq_len, device=in_idx.device))
+        x = tok_embeds + pos_embeds  # Shape [batch_size, num_tokens, emb_size]
+        x = self.drop_emb(x)
+        x = self.trf_blocks(x)
+        x = self.final_norm(x)
+        logits = self.out_head(x)
+        return logits
+
+
+#Input batch:
+#tensor([[6109, 3626, 6100,  345],
+#        [6109, 1110, 6622,  257]])
+
+#Output shape: torch.Size([2, 4, 50257])
+#tensor([[[ 0.3613,  0.4222, -0.0711,  ...,  0.3483,  0.4661, -0.2838],
+#         [-0.1792, -0.5660, -0.9485,  ...,  0.0477,  0.5181, -0.3168],
+#         [ 0.7120,  0.0332,  0.1085,  ...,  0.1018, -0.4327, -0.2553],
+#         [-1.0076,  0.3418, -0.1190,  ...,  0.7195,  0.4023,  0.0532]],
+
+#        [[-0.2564,  0.0900,  0.0335,  ...,  0.2659,  0.4454, -0.6806],
+#         [ 0.1230,  0.3653, -0.2074,  ...,  0.7705,  0.2710,  0.2246],
+#         [ 1.0558,  1.0318, -0.2800,  ...,  0.6936,  0.3205, -0.3178],
+#         [-0.1565,  0.3926,  0.3288,  ...,  1.2630, -0.1858,  0.0388]]],
+#       grad_fn=<UnsafeViewBackward0>)
+
+
+torch.manual_seed(123)
+torch = GPTModel(batch)
+
+out = modle(bathc)
+print("Input batch:\n", batch)
+print("\nOutput shape:", out.shape)
+print(out)
