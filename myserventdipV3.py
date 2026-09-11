@@ -455,18 +455,18 @@ class MultiHeadAttention(nn.Module):
         queries = self.W_query(x)
         values = self.W_value(x)
         keys = keys.view(b, num_tokens, self.num_heads, self.head_dim)
-        values = values. view(b, num_tokens, self.num_heads,self.head_dim)
+        values = values.view(b, num_tokens, self.num_heads,self.head_dim)
         queries = queries.view(b, num_tokens, self.num_heads, self.head_dim)
         keys = keys.transpose(1, 2)
-        queries = queries. transpose(1, 2)
+        queries = queries.transpose(1, 2)
         values = values.transpose(1, 2)
         attn_scores = queries @ keys.transpose(2, 3)
         mask_bool = self.mask.bool()[:num_tokens, :num_tokens]
         attn_scores.masked_fill_(mask_bool, -torch.inf)
         attn_weights = torch.softmax(attn_scores / keys.shape[-1]**0.5, dim=-1)
         attn_weights = self.dropout(attn_weights)
-        context_vec = (attn_weights @ values). transpose(1, 2)
-        context_vec = context_vec.contiguous(). view(b, num_tokens, self.d_out)
+        context_vec = (attn_weights @ values).transpose(1, 2)
+        context_vec = context_vec.contiguous().view(b, num_tokens, self.d_out)
         context_vec = self.out_proj(context_vec)
         return context_vec
 torch.manual_seed(123)
@@ -571,7 +571,7 @@ tokenizer = tiktoken.get_encoding("gpt2")
 batch = []
 txt1 = "Every effort moves you"
 txt2 = "Every day holds a"
-batch. append(torch.tensor(tokenizer.encode(txt1)))
+batch.append(torch.tensor(tokenizer.encode(txt1)))
 batch.append(torch.tensor(tokenizer.encode(txt2)))
 batch = torch.stack(batch, dim=0)
 print(batch)
@@ -668,7 +668,7 @@ print("Close the activation plot window to continue running the model.")
 plt.show()
 
 class FeedForward(nn.Module):
-    def __init__(self,cfg):
+    def__init__(self,cfg):
         super(). __init__()
         self.layers = nn.Sequential(
             nn.Linear(cfg["emb_dim"], 4* cfg["emb_dim"]),
@@ -725,7 +725,7 @@ print_gradients(model_with_shortcut, sample_input)
 
 class TransformerBlock(nn.Module):
     def __init__(self, cfg):
-        super(). __init__()
+        super().__init__()
         self.att = MultiHeadAttention(
             d_in=cfg["emb_dim"],
             d_out=cfg["emb_dim"],
@@ -736,7 +736,7 @@ class TransformerBlock(nn.Module):
         self.ff = FeedForward(cfg)
         self.norm1 = LayerNorm(cfg["emb_dim"])
         self.norm2 = LayerNorm(cfg["emb_dim"])
-        self.drop_shortcut = nn.Dropout(cfg["drop_rate"]
+        self.drop_shortcut = nn.Dropout(cfg["drop_rate"])
     )
     def forward(self, x):
         shortcut = x
