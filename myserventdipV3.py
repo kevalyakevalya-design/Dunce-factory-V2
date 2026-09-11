@@ -736,8 +736,9 @@ class TransformerBlock(nn.Module):
         self.ff = FeedForward(cfg)
         self.norm1 = LayerNorm(cfg["emb_dim"])
         self.norm2 = LayerNorm(cfg["emb_dim"])
-        self.drop_shortcut = nn.Dropout(cfg["drop_rate"])
-    )
+        self.drop_shortcut = nn.Dropout(cfg["drop_rate"]
+        )
+    
     def forward(self, x):
         shortcut = x
         x = self.norm1(x)
@@ -1389,6 +1390,7 @@ optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
 
 model.train()
 
+from importlib.metadata import version
 print("TensorFlow version:", version("tensorflow"))
 print("tqdm version:", version("tqdm"))
 
@@ -1516,91 +1518,7 @@ def download_file(url, destination):
                 progress_bar.update(len(chunk))  # Update progress bar
                 file.write(chunk)  # Write the chunk to the file
 """
-import os
 
-import requests
-import json
-import numpy as np
-import tensorflow as tf
-from tqdm import tqdm
-
-
-def download_and_load_gpt2(model_size, models_dir):
-    # Validate model size
-    allowed_sizes = ("124M", "355M", "774M", "1558M")
-    if model_size not in allowed_sizes:
-        raise ValueError(f"Model size not in {allowed_sizes}")
-
-    # Define paths
-    model_dir = os.path.join(models_dir, model_size)
-    base_url = "https://openaipublic.blob.core.windows.net/gpt-2/models"
-    backup_base_url = "https://f001.backblazeb2.com/file/LLMs-from-scratch/gpt2"
-    filenames = [
-        "checkpoint", "encoder.json", "hparams.json",
-        "model.ckpt.data-00000-of-00001", "model.ckpt.index",
-        "model.ckpt.meta", "vocab.bpe"
-    ]
-
-    # Download files
-    os.makedirs(model_dir, exist_ok=True)
-    for filename in filenames:
-        file_url = os.path.join(base_url, model_size, filename)
-        backup_url = os.path.join(backup_base_url, model_size, filename)
-        file_path = os.path.join(model_dir, filename)
-        download_file(file_url, file_path, backup_url)
-
-    # Load settings and params
-    tf_ckpt_path = tf.train.latest_checkpoint(model_dir)
-    settings = json.load(open(os.path.join(model_dir, "hparams.json"), "r", encoding="utf-8"))
-    params = load_gpt2_params_from_tf_ckpt(tf_ckpt_path, settings)
-
-    return settings, params
-
-
-def download_file(url, destination, backup_url=None):
-    def _attempt_download(download_url):
-        response = requests.get(download_url, stream=True, timeout=60)
-        response.raise_for_status()
-
-        file_size = int(response.headers.get("Content-Length", 0))
-
-        # Check if file exists and has same size
-        if os.path.exists(destination):
-            file_size_local = os.path.getsize(destination)
-            if file_size and file_size == file_size_local:
-                print(f"File already exists and is up-to-date: {destination}")
-                return True
-
-        block_size = 1024  # 1 KB
-        desc = os.path.basename(download_url)
-        with tqdm(total=file_size, unit="iB", unit_scale=True, desc=desc) as progress_bar:
-            with open(destination, "wb") as file:
-                for chunk in response.iter_content(chunk_size=block_size):
-                    if chunk:
-                        file.write(chunk)
-                        progress_bar.update(len(chunk))
-        return True
-
-    try:
-        if _attempt_download(url):
-            return
-    except requests.exceptions.RequestException:
-        if backup_url is not None:
-            print(f"Primary URL ({url}) failed. Attempting backup URL: {backup_url}")
-            try:
-                if _attempt_download(backup_url):
-                    return
-            except requests.exceptions.RequestException:
-                pass
-
-        error_message = (
-            f"Failed to download from both primary URL ({url})"
-            f"{' and backup URL (' + backup_url + ')' if backup_url else ''}."
-            "\nCheck your internet connection or the file availability.\n"
-            "For help, visit: https://github.com/rasbt/LLMs-from-scratch/discussions/273"
-        )
-        print(error_message)
-    except Exception as e:
         print(f"An unexpected error occurred: {e}")
 
 
@@ -1748,7 +1666,6 @@ def load_weights_into_gpt(gpt, params):
             params["blocks"][b]["ln_1"]["g"])
         gpt.trf_blocks[b].norm1.shift = assign(
             gpt.trf_blocks[b].norm1.shift, 
-            params["blocks"][b]["ln_1"]["b"])
         gpt.trf_blocks[b].norm2.scale = assign(
             gpt.trf_blocks[b].norm2.scale, 
             params["blocks"][b]["ln_2"]["g"])
