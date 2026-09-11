@@ -1147,3 +1147,129 @@ def generate_and_print_sample(model, tokenizer, device, start_context):
     print(decoded_text.replace("\n", " "))  # Compact print format
     model.train()
 
+# Note:
+# Uncomment the following code to calculate the execution time
+# import time
+# start_time = time.time()
+
+torch.manual_seed(123)
+model = GPTModel(GPT_CONFIG_124M)
+model.to(device)
+optimizer = torch.optim.AdamW(model.parameters(), lr=0.0004, weight_decay=0.1)
+
+num_epochs = 10
+train_losses, val_losses, tokens_seen = train_model_simple(
+    model, train_loader, val_loader, optimizer, device,
+    num_epochs=num_epochs, eval_freq=5, eval_iter=5,
+    start_context="Every effort moves you", tokenizer=tokenizer
+)
+
+import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
+
+
+def plot_losses(epochs_seen, tokens_seen, train_losses, val_losses):
+    fig, ax1 = plt.subplots(figsize=(5, 3))
+
+    # Plot training and validation loss against epochs
+    ax1.plot(epochs_seen, train_losses, label="Training loss")
+    ax1.plot(epochs_seen, val_losses, linestyle="-.", label="Validation loss")
+    ax1.set_xlabel("Epochs")
+    ax1.set_ylabel("Loss")
+    ax1.legend(loc="upper right")
+    ax1.xaxis.set_major_locator(MaxNLocator(integer=True))  # only show integer labels on x-axis
+
+    # Create a second x-axis for tokens seen
+    ax2 = ax1.twiny()  # Create a second x-axis that shares the same y-axis
+    ax2.plot(tokens_seen, train_losses, alpha=0)  # Invisible plot for aligning ticks
+    ax2.set_xlabel("Tokens seen")
+
+    fig.tight_layout()  # Adjust layout to make room
+    plt.savefig("loss-plot.pdf")
+    plt.show()
+
+epochs_tensor = torch.linspace(0, num_epochs, len(train_losses))
+plot_losses(epochs_tensor, tokens_seen, train_losses, val_losses)
+
+inference_device = torch.device("cpu")
+
+model.to(inference_device)
+model.eval()
+
+tokenizer = tiktoken.get_encoding("gpt2")
+
+token_ids = generate_text_simple(
+    model=model,
+    idx=text_to_token_ids("Every effort moves you", tokenizer).to(inference_device),
+    max_new_tokens=25,
+    context_size=GPT_CONFIG_124M["context_length"]
+)
+
+print("Output text:\n", token_ids_to_text(token_ids, tokenizer))
+
+vocab = { 
+    "closer": 0,
+    "every": 1, 
+    "effort": 2, 
+    "forward": 3,
+    "inches": 4,
+    "moves": 5, 
+    "pizza": 6,
+    "toward": 7,
+    "you": 8,
+} 
+
+inverse_vocab = {v: k for k, v in vocab.items()}
+
+# Suppose input is "every effort moves you", and the LLM
+# returns the following logits for the next token:
+next_token_logits = torch.tensor(
+    [4.51, 0.89, -1.90, 6.75, 1.63, -1.62, -1.89, 6.28, 1.79]
+)
+
+probas = torch.softmax(next_token_logits, dim=0)
+next_token_id = torch.argmax(probas).item()
+
+# The next generated token is then as follows:
+print(inverse_vocab[next_token_id])
+
+torch.manual_seed(123)
+next_token_id = torch.multinomial(probas, num_samples=1).item()
+print(inverse_vocab[next_token_id])
+
+def print_sampled_tokens(probas):
+    torch.manual_seed(123) # Manual seed for reproducibility
+    sample = [torch.multinomial(probas, num_samples=1).item() for i in range(1_000)]
+    sampled_ids = torch.bincount(torch.tensor(sample), minlength=len(probas))
+    for i, freq in enumerate(sampled_ids):
+        print(f"{freq} x {inverse_vocab[i]}")
+
+print_sampled_tokens(probas)
+
+def softmax_with_temperature(logits, temperature):
+    scaled_logits = logits / temperature
+    return torch.softmax(scaled_logits, dim=0)
+
+# Temperature values
+temperatures = [1, 0.1, 5]  # Original, higher confidence, and lower confidence
+
+# Calculate scaled probabilities
+scaled_probas = [softmax_with_temperature(next_token_logits, T) for T in temperatures]
+# Plotting
+x = torch.arange(len(vocab))
+bar_width = 0.15
+
+fig, ax = plt.subplots(figsize=(5, 3))
+for i, T in enumerate(temperatures):
+    rects = ax.bar(x + i * bar_width, scaled_probas[i], bar_width, label=f'Temperature = {T}')
+
+ax.set_ylabel('Probability')
+ax.set_xticks(x)
+ax.set_xticklabels(vocab.keys(), rotation=90)
+ax.legend()
+
+plt.tight_layout()
+plt.savefig("temperature-plot.pdf")
+plt.show()
+print_sampled_tokens(scaled_probas[1])
+print_sampled_tokens(scaled_probas[2])
